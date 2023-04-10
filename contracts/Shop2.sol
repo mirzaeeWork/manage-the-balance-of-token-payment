@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Shop is Context {
     using Counters for Counters.Counter;
@@ -43,7 +42,13 @@ contract Shop is Context {
         bool sold
     );
 
-    event _buyItem(address nftContract,address seller,address buyer ,uint256 tokenId, uint256 amountOfToken);
+    event _buyItem(
+        address nftContract,
+        address seller,
+        address buyer,
+        uint256 tokenId,
+        uint256 amountOfToken
+    );
 
     function createItemERC115(
         address _nftContract,
@@ -83,24 +88,21 @@ contract Shop is Context {
         itemIds.increment();
     }
 
-
-    function buyItem(
-        IERC20 tokenERC20,
-        IERC1155 _nftContract,
-        uint256 itemId_,
-        uint256 _price
-    ) public {
+    function buyItem(IERC1155 _nftContract, uint256 itemId_) public payable {
         uint256 _itemId = itemIds.current();
         require(itemId_ < _itemId, "createAuction: it is not item ");
 
-        require(
-            _price > 0 && tokenERC20.balanceOf(_msgSender()) >= _price,
-            "buyToken : Insufficient inventory"
-        );
+        require(msg.value > 0, "buyToken : Insufficient inventory");
         ItemERC115 storage item = itemERC1155[itemId_];
 
-        require(_price == item.price, "buyToken : Please Paye Correct Price");
-        tokenERC20.transferFrom(_msgSender(), item.owner, _price);
+        require(
+            msg.value == item.price,
+            "buyToken : Please Paye Correct Price"
+        );
+
+        (bool sent, ) = item.owner.call{value: msg.value}("");
+        require(sent, "Failed to send Ether");
+
         _nftContract.safeTransferFrom(
             item.owner,
             _msgSender(),
@@ -110,19 +112,23 @@ contract Shop is Context {
         );
         item.owner = payable(_msgSender());
         item.sold = true;
-        balances[_msgSender()]+=_price;
+        balances[_msgSender()] += msg.value;
         OrdersAccount[_msgSender()].push(
             order({
-                nftContract:address(_nftContract),
-                tokenId:item.tokenId,
-                amount:item.amountOfToken,
-                price:item.price
+                nftContract: address(_nftContract),
+                tokenId: item.tokenId,
+                amount: item.amountOfToken,
+                price: item.price
             })
         );
-         emit _buyItem(address(_nftContract),item.owner,_msgSender() ,item.tokenId, item.amountOfToken);
-
+        emit _buyItem(
+            address(_nftContract),
+            item.owner,
+            _msgSender(),
+            item.tokenId,
+            item.amountOfToken
+        );
     }
-
 
     receive() external payable {}
 }
