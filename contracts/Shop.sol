@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 
 
-contract Shop2 is Context{
+contract Shop is Context{
     using Counters for Counters.Counter;
 
     struct product {
@@ -45,6 +45,10 @@ contract Shop2 is Context{
         uint256 price, //Based on Ethereum
         bool sold
     );
+
+    function getBalanaceAddress(address _account)public view returns(uint256){
+        return _account.balance; 
+    }
 
 
     function createItemProduct(
