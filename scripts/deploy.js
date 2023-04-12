@@ -16,7 +16,14 @@ async function main() {
 
   await shop.deployed();
 
+  const MarketNft = await hre.ethers.getContractFactory("JoinMarketNft");
+  const marketNft = await MarketNft.deploy();
 
+  await marketNft.deployed();
+
+  console.log(
+    `NftMarket deployed to : ${marketNft.address}`
+  );
 
   console.log(
     `eRC20 deployed to : ${eRC20.address}`
